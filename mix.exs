@@ -7,6 +7,7 @@ defmodule Keypad.MixProject do
       version: "0.1.0",
       elixir: "~> 1.8",
       name: "Keypad",
+      description: "A small library to interact with keypads connected to GPIO pins",
       source_url: "https://github.com/jjcarstens/keypad",
       docs: [extras: ["README.md", "CONFIGURATION.md", "SETUP.md"], main: "readme"],
       start_permanent: Mix.env() == :prod,
