@@ -1,8 +1,32 @@
 defmodule Keypad do
   @moduledoc """
-  Documentation for Keypad.
+  `keypad` is implemented as a `__using__` macro so that you can put it in any module you want
+  to handle the keypress events. Because it is small GenServer, it [accepts the same options for supervision](https://hexdocs.pm/elixir/GenServer.html#module-how-to-supervise)
+  to configure the child spec and passes them along to `GenServer`:
+
+  ```elixir
+  defmodule MyModule do
+    use Keypad, restart: :transient, shutdown: 10_000
+  end
+  ```
+
+  It also has its own set of options to pass to configure the keypad connections. At a minimum, you must
+  pass either `:size` or a custom matrix with `:matrix`:
+
+  * `:size` - If supplied without `:matrix` it will select the default matrix for the specified size. The delaration is `row x col`, so `:three_by_four` would be 3 rows, 1 column.
+    * `:four_by_four` or `"4x4"` - Standard 12-digit keypad with `A`, `B`, `C`, and `D` keys
+    * `:three_by_four` or `"3x4"` - Standard 12-digit keypad
+    * `:one_by_four` or `"1x4"`
+  * `:matrix` - A custom matrix to use for mapping keypresses to. Will take precedence over `:size` if supplied
+    * Typically, these are `binary` values. However, these values are pulled from List and in theory can be
+    anything you want. i.e. atom, integer, or even annonymous function
+  * `:row_pins` - List of integers which map to corresponding GPIO to set as `INPUT` pins for keypard rows
+    * On raspberry pi, these will also set the internal resistor to `PULL_UP` and inactive HIGH. For all other hardware, you will probably need to make sure to place some 10K resistors between your pin and ground. see [Setup](SETUP.md) doc for some examples
+    * defaults to `[17, 27, 23, 24]`
+  * `:col_pins` - List of integers which map to corresponding GPIO to as `OUTPUT` pins for keypad columns
+    * defaults to `[5, 6, 13, 26]`
   """
-  @callback handle_keypress(key :: String.t) :: any
+  @callback handle_keypress(key :: any) :: any
 
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
@@ -12,7 +36,7 @@ defmodule Keypad do
       alias __MODULE__
 
       defmodule State do
-        defstruct row_pins: [17, 27, 5, 6], col_pins: [22, 23, 24, 25], matrix: nil, size: nil, last_message_at: 0
+        defstruct row_pins: [17, 27, 23, 24], col_pins: [5, 6, 13, 26], matrix: nil, size: nil, last_message_at: 0
       end
 
       defguard valid_press(current, prev) when ((current - prev)/1.0e6) > 100
@@ -39,17 +63,21 @@ defmodule Keypad do
 
       @impl true
       def handle_info({:circuits_gpio, pin_num, time, 0}, %{last_message_at: prev} = state) when valid_press(time, prev) do
-        {row_pin, row_index} = Enum.with_index(state.row_pins)
+        {row_pin, row_index} = Stream.with_index(state.row_pins)
                                |> Enum.find(fn {row, _i} -> Circuits.GPIO.pin(row) == pin_num end)
         state.col_pins
         |> Stream.with_index()
         |> Enum.reduce_while([], fn {col, col_index}, acc ->
+          # Write the column pin HIGH then read the row pin again.
+          # If the row is HIGH, then we've pin-pointed which column it is in
           Circuits.GPIO.write(col, 1)
           row_val = Circuits.GPIO.read(row_pin)
           Circuits.GPIO.write(col, 0)
 
           case row_val do
             1 ->
+              # We can use the row and column indexes as x,y of the matrix
+              # to get which specific key character the press belongs to.
               val = Enum.at(state.matrix, row_index) |> Enum.at(col_index)
               apply(__MODULE__, :handle_keypress, [val])
               {:halt, []}

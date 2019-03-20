@@ -6,7 +6,18 @@ defmodule Keypad.MixProject do
       app: :keypad,
       version: "0.1.0",
       elixir: "~> 1.8",
+      name: "Keypad",
+      source_url: "https://github.com/jjcarstens/keypad",
+      docs: [extras: ["README.md", "CONFIGURATION.md", "SETUP.md"], main: "readme"],
       start_permanent: Mix.env() == :prod,
+      aliases: [docs: ["docs", &copy_images/1]],
+      package: [
+        maintainers: ["Jon Carstens"],
+        licenses: ["Apache License 2.0"],
+        links: %{
+          "GitHub" => "https://github.com/jjcarstens/keypad"
+        }
+      ],
       deps: deps()
     ]
   end
@@ -17,9 +28,14 @@ defmodule Keypad.MixProject do
     ]
   end
 
+  defp copy_images(_) do
+    File.cp_r("assets", "doc/assets")
+  end
+
   defp deps do
     [
-      {:circuits_gpio, "~> 0.3.0"}
+      {:circuits_gpio, "~> 0.3.0"},
+      {:ex_doc, "~> 0.19", only: :dev, runtime: false}
     ]
   end
 end
