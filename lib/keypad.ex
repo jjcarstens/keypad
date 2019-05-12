@@ -26,7 +26,47 @@ defmodule Keypad do
   * `:col_pins` - List of integers which map to corresponding GPIO to as `OUTPUT` pins for keypad columns
     * defaults to `[5, 6, 13, 26]`
   """
-  @callback handle_keypress(key :: any) :: any
+
+  @doc """
+  Required callback to handle keypress events based on defined matrix values.
+
+  It's first argument will be the result of the keypress according to the defined matrix (most typically a
+  binary string, though you can use anything you'd like). The second argument is the state of the keypad
+  GenServer. You are required to return the state in this function.
+
+  There is an optional field in the state called `:input` which is initialized as an empty string `""`. You can
+  use this to keep input events from keypresses and build them as needed, such as putting multiple keypresses
+  together to determine a password. **Note**: You will be responsible for resetting this input as needed.
+
+  This is not required and you can optionally use other measures to keep rolling state, such as `Agent`.
+
+  ```elixir
+  defmodule MyKeypad do
+    use Keypad
+
+    require Logger
+
+    @impl true
+    def handle_keypress(key, %{input: ""} = state) do
+      Logger.info("First Keypress: \#{key}")
+      Process.send_after(self(), :reset, 5000) # Reset input after 5 seconds
+      %{state | input: key}
+    end
+
+    @impl true
+    def handle_keypress(key, %{input: input} = state) do
+      Logger.info("Keypress: \#{key}")
+      %{state | input: input <> key}
+    end
+
+    @impl true
+    def handle_info(:reset, state) do
+      {:noreply, %{state | input: ""}}
+    end
+  end
+  ```
+  """
+  @callback handle_keypress(key :: any, map) :: map
 
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
@@ -36,7 +76,7 @@ defmodule Keypad do
       alias __MODULE__
 
       defmodule State do
-        defstruct row_pins: [17, 27, 23, 24], col_pins: [5, 6, 13, 26], matrix: nil, size: nil, last_message_at: 0
+        defstruct row_pins: [17, 27, 23, 24], col_pins: [5, 6, 13, 26], input: "", matrix: nil, size: nil, last_message_at: 0
       end
 
       defguard valid_press(current, prev) when ((current - prev)/1.0e6) > 100
@@ -65,7 +105,7 @@ defmodule Keypad do
       def handle_info({:circuits_gpio, pin_num, time, 0}, %{last_message_at: prev} = state) when valid_press(time, prev) do
         {row_pin, row_index} = Stream.with_index(state.row_pins)
                                |> Enum.find(fn {row, _i} -> Circuits.GPIO.pin(row) == pin_num end)
-        state.col_pins
+        val = state.col_pins
         |> Stream.with_index()
         |> Enum.reduce_while([], fn {col, col_index}, acc ->
           # Write the column pin HIGH then read the row pin again.
@@ -79,12 +119,14 @@ defmodule Keypad do
               # We can use the row and column indexes as x,y of the matrix
               # to get which specific key character the press belongs to.
               val = Enum.at(state.matrix, row_index) |> Enum.at(col_index)
-              apply(__MODULE__, :handle_keypress, [val])
-              {:halt, []}
+
+              {:halt, val}
             0 ->
               {:cont, []}
           end
         end)
+
+        state = apply(__MODULE__, :handle_keypress, [val, state])
 
         {:noreply, %{state | last_message_at: time}}
       end

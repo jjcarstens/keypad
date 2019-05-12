@@ -34,7 +34,10 @@ defmodule MyModule do
   use Keypad, row_pins: [5,6,7], col_pins: [22,23,24,25], size: "3x4"
 
   @impl true
-  def handle_keypress(key), do: IO.inspect(key, label: "KEYPRESS: ")
+  def handle_keypress(key, state) do
+    IO.inspect(key, label: "KEYPRESS: ")
+    state
+  end
 end
 ```
 
@@ -48,7 +51,10 @@ defmodule MyModule do
   ]
 
   @impl true
-  def handle_keypress(key), do: IO.inspect(key, label: "KEYPRESS: ")
+  def handle_keypress(key, state) do
+    IO.inspect(key, label: "KEYPRESS: ")
+    state
+  end
 end
 ```
 
@@ -63,6 +69,9 @@ defmodule MyModule do
   ]
 
   @impl true
-  def handle_keypress(key), do: IO.inspect(key, label: "KEYPRESS: ")
+  def handle_keypress(key, state) do
+    IO.inspect(key, label: "KEYPRESS: ")
+    state
+  end
 end
 ```
