@@ -13,9 +13,9 @@ defmodule Keypad do
   It also has its own set of options to pass to configure the keypad connections. At a minimum, you must
   pass either `:size` or a custom matrix with `:matrix`:
 
-  * `:size` - If supplied without `:matrix` it will select the default matrix for the specified size. The delaration is `row x col`, so `:three_by_four` would be 3 rows, 1 column.
+  * `:size` - If supplied without `:matrix` it will select the default matrix for the specified size. The delaration is `row x col`, so `:one_by_four` would be 1 row, 4 columns.
     * `:four_by_four` or `"4x4"` - Standard 12-digit keypad with `A`, `B`, `C`, and `D` keys
-    * `:three_by_four` or `"3x4"` - Standard 12-digit keypad
+    * `:four_by_three` or `"4x3"` - Standard 12-digit keypad
     * `:one_by_four` or `"1x4"`
   * `:matrix` - A custom matrix to use for mapping keypresses to. Will take precedence over `:size` if supplied
     * Typically, these are `binary` values. However, these values are pulled from List and in theory can be
@@ -136,10 +136,10 @@ defmodule Keypad do
       def handle_info({:circuits_gpio, _, time, _}, state), do: {:noreply, state}
 
       defp initialize_rows_and_cols(%{size: <<x::binary-size(1), "x", y::binary-size(1)>>, row_pins: rows, col_pins: cols} = state) do
-        # x == col
-        # y == row
-        if String.to_integer(x) != length(cols), do: raise ArgumentError, "expected #{x} column pins but only #{length(cols)} were given"
-        if String.to_integer(y) != length(rows), do: raise ArgumentError, "expected #{x} row pins but only #{length(rows)} were given"
+        # x == row
+        # y == col
+        if String.to_integer(x) != length(rows), do: raise ArgumentError, "expected #{x} row pins but only #{length(rows)} were given"
+        if String.to_integer(y) != length(cols), do: raise ArgumentError, "expected #{y} column pins but only #{length(cols)} were given"
 
         row_pins = for pin_num <- rows do
           # Just use internal resistor if on a Raspberry Pi
@@ -153,7 +153,7 @@ defmodule Keypad do
           pin
         end
 
-        %{state | col_pins: col_pins, row_pins: row_pins}
+        %{state | row_pins: row_pins, col_pins: col_pins}
       end
 
       defp initialize_matrix_and_size(%{matrix: matrix} = state) when is_list(matrix) do
@@ -161,8 +161,8 @@ defmodule Keypad do
         |> Enum.map(&length/1)
         |> Enum.uniq
         |> case do
-          [x_size] ->
-            %{state | size: "#{x_size}x#{length(matrix)}"}
+          [y_size] ->
+            %{state | size: "#{length(matrix)}x#{y_size}"}
           _ ->
             raise ArgumentError, "matrix columns must be equal\n#{inspect(matrix)}"
         end
@@ -179,7 +179,7 @@ defmodule Keypad do
 
       defp matrix_for_size(:four_by_four), do: matrix_for_size("4x4")
 
-      defp matrix_for_size(:three_by_four), do: matrix_for_size("3x4")
+      defp matrix_for_size(:four_by_three), do: matrix_for_size("4x3")
 
       defp matrix_for_size(:one_by_four), do: matrix_for_size("1x4")
 
@@ -192,7 +192,7 @@ defmodule Keypad do
         ]
       end
 
-      defp matrix_for_size("3x4") do
+      defp matrix_for_size("4x3") do
         [
           ["1", "2", "3"],
           ["4", "5", "6"],
