@@ -13,9 +13,9 @@ end
 It also has its own set of options to pass to configure the keypad connections. At a minimum, you must
 pass either `:size` or a custom matrix with `:matrix`:
 
-* `:size` - If supplied without `:matrix` it will select the default matrix for the specified size. The delaration is `row x col`, so `:three_by_four` would be 3 rows, 1 column.
+* `:size` - If supplied without `:matrix` it will select the default matrix for the specified size. The delaration is `row x col`, so `:one_by_four` would be 1 row, 4 columns.
   * `:four_by_four` or `"4x4"` - Standard 12-digit keypad with `A`, `B`, `C`, and `D` keys
-  * `:three_by_four` or `"3x4"` - Standard 12-digit keypad
+  * `:four_by_three` or `"4x3"` - Standard 12-digit keypad
   * `:one_by_four` or `"1x4"`
 * `:matrix` - A custom matrix to use for mapping keypresses to. Will take precedence over `:size` if supplied
   * Typically, these are `binary` values. However, these values are pulled from List and in theory can be
@@ -31,7 +31,7 @@ pass either `:size` or a custom matrix with `:matrix`:
 Using a default matrix with custom row and column pins:
 ```elixir
 defmodule MyModule do
-  use Keypad, row_pins: [5,6,7], col_pins: [22,23,24,25], size: "3x4"
+  use Keypad, row_pins: [22,23,24,25], col_pins: [5,6,7], size: "4x3"
 
   @impl true
   def handle_keypress(key, state) do

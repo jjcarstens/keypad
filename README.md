@@ -27,7 +27,7 @@ Add `keypad` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:keypad, "~> 0.1.0"}
+    {:keypad, "~> 0.3"}
   ]
 end
 ```
@@ -47,7 +47,7 @@ defmodule MyModule do
   use Keypad, size: :four_by_four
 
   @impl true
-  def handle_keypress(key), do: IO.inspect(key, label: "KEYPRESS: )
+  def handle_keypress(key, _), do: IO.inspect(key, label: "KEYPRESS: )
 end
 ```
 
