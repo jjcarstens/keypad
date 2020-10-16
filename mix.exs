@@ -1,25 +1,25 @@
 defmodule Keypad.MixProject do
   use Mix.Project
 
+  @version "0.3.0"
+  @source_url "https://github.com/jjcarstens/keypad"
+
   def project do
     [
       app: :keypad,
-      version: "0.3.0",
+      version: @version,
       elixir: "~> 1.8",
-      name: "Keypad",
       description: "A small library to interact with keypads connected to GPIO pins",
-      source_url: "https://github.com/jjcarstens/keypad",
-      docs: [extras: ["README.md", "CONFIGURATION.md", "SETUP.md"], main: "readme"],
+      docs: docs(),
       start_permanent: Mix.env() == :prod,
       aliases: [docs: ["docs", &copy_images/1]],
-      package: [
-        maintainers: ["Jon Carstens"],
-        licenses: ["Apache License 2.0"],
-        links: %{
-          "GitHub" => "https://github.com/jjcarstens/keypad"
-        }
-      ],
-      deps: deps()
+      package: package(),
+      deps: deps(),
+      preferred_cli_env: [
+        docs: :docs,
+        "hex.build": :docs,
+        "hex.publish": :docs
+      ]
     ]
   end
 
@@ -35,8 +35,22 @@ defmodule Keypad.MixProject do
 
   defp deps do
     [
-      {:circuits_gpio, "~> 0.3"},
-      {:ex_doc, "~> 0.19", only: :dev, runtime: false}
+      {:circuits_gpio, "~> 0.4"},
+      {:ex_doc, "~> 0.23", only: :docs, runtime: false}
+    ]
+  end
+
+  defp docs do
+    [extras: ["README.md", "CONFIGURATION.md", "SETUP.md", "CHANGELOG.md"], main: "readme",
+    source_ref: "v#{@version}",
+    source_url: @source_url,
+    skip_undefined_reference_warnings_on: ["CHANGELOG.md"]]
+  end
+
+  defp package do
+    [
+      licenses: ["Apache License 2.0"],
+      links: %{"GitHub" => @source_url}
     ]
   end
 end
